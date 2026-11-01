@@ -1,0 +1,8 @@
+{
+  "model": "opus[1m]",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
+}

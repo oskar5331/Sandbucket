@@ -1,0 +1,30 @@
+.claude/settings.local.json
+.claude/worktrees/
+# Claude auto-memory — personal working notes, symlinked in by .devcontainer/post-create.sh.
+.devcontainer/claude-memory/
+.DS_Store
+_temp/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# pnpm in-project store (created when no global store-dir is reachable)
+.pnpm-store/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+# Hand-made backups of .env are full copies of the secrets in it, so they must never be
+# committable. Deliberately NOT `.env.*`, which would also ignore .env.example.
+.env.bak

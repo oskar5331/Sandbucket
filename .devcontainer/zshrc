@@ -1,0 +1,90 @@
+# Devcontainer — interactive zsh tweaks (sourced from ~/.zshrc).
+#
+# Layout below: (1) completion system, (2) completion behaviour, (3) history,
+# (4) navigation, (5) prefix history search, (6) git-aware prompt, (7) plugins
+# + tool completions. Plugin sources are guarded with `[ -f ]` so this file is
+# safe in a container built before the Dockerfile installed them.
+
+# ── 1. Completion system ──────────────────────────────────────────────────
+# Debian's /etc/zsh/zshrc only auto-runs `compinit` when /etc/os-release says
+# the distro is *Ubuntu* (it greps `ID*=*ubuntu`). This image is Debian
+# bookworm, so that guard is false and the completion system is never started —
+# meaning zero Tab completion (not even Tab-Tab) for git, cd, anything. We must
+# initialise it ourselves. `-u` skips the insecure-directory prompt (harmless in
+# a single-user dev container) so startup never hangs waiting on a y/n; `-d`
+# pins the dump file to $HOME (an image layer, writable by `node`).
+autoload -Uz compinit && compinit -u -d "$HOME/.zcompdump"
+
+# ── 2. Completion behaviour ───────────────────────────────────────────────
+zstyle ':completion:*' menu select                       # arrow-key menu you cycle through (e.g. git branches)
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # case-insensitive: `Ui<Tab>` matches `ui-…`
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"  # colour candidates like `ls`
+zstyle ':completion:*' use-cache on                      # cache slow completions
+zstyle ':completion:*' cache-path "$HOME/.zcompcache"
+zstyle ':completion:*:descriptions' format '%B%d%b'      # bold group headers in the menu
+setopt COMPLETE_IN_WORD                                   # complete from the cursor, not just end of word
+setopt ALWAYS_TO_END                                     # move cursor to word end after completing
+
+# ── 3. History ────────────────────────────────────────────────────────────
+# A bare zsh keeps only a few lines in memory and writes none to disk, so every
+# new terminal starts blank. Set a real history file + sane sizes, then opt into
+# the quality-of-life options.
+HISTFILE="${HISTFILE:-$HOME/.zsh_history}"  # devcontainer.json points this at a volume
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY        # write live and re-read, so concurrent terminals share history
+setopt HIST_IGNORE_ALL_DUPS # drop older duplicates anywhere in history, not just consecutive
+setopt HIST_IGNORE_SPACE    # don't store commands typed with a leading space
+setopt HIST_REDUCE_BLANKS   # trim redundant whitespace before storing
+setopt HIST_FIND_NO_DUPS    # don't show a line already matched when scrolling history
+setopt EXTENDED_HISTORY     # record timestamps so `history -E` / search has time context
+setopt HIST_VERIFY          # expand !-history onto the line for review before running
+
+# ── 4. Navigation ─────────────────────────────────────────────────────────
+setopt AUTO_CD              # type a directory name to cd into it
+setopt AUTO_PUSHD           # every cd pushes onto the dir stack…
+setopt PUSHD_IGNORE_DUPS    # …without duplicate entries (`cd -<Tab>` to jump back)
+setopt PUSHD_SILENT         # don't print the stack on every pushd/popd
+setopt EXTENDED_GLOB        # richer globbing (^, #, ~ operators)
+setopt INTERACTIVE_COMMENTS # allow `# comments` on the interactive line
+
+# ── 5. Prefix history search ──────────────────────────────────────────────
+# Type a prefix (e.g. `git `) then ↑ to cycle only past commands that start with
+# it — the "branch history on the arrow keys" feel — instead of plain reverse
+# chronology. Built-in widgets, no plugin needed. Bind both CSI (`^[[A`) and
+# application-mode (`^[OA`) escapes so it works regardless of terminal mode.
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
+bindkey '^[OA' up-line-or-beginning-search
+bindkey '^[OB' down-line-or-beginning-search
+
+# ── 6. Git-aware prompt ───────────────────────────────────────────────────
+# Show the working dir (%~, ~-abbreviated — readable inside a container where
+# %m would print the 12-char container id) plus the current git branch. vcs_info
+# fills $vcs_info_msg_0_ before each prompt; PROMPT_SUBST re-expands it live, and
+# appending to precmd_functions (vs. defining `precmd`) keeps any other hook
+# intact (e.g. VS Code shell integration).
+autoload -Uz vcs_info
+zstyle ':vcs_info:git:*' formats ' (%b)'
+zstyle ':vcs_info:git:*' actionformats ' (%b|%a)'   # show the op during rebase/merge
+precmd_functions+=(vcs_info)
+setopt PROMPT_SUBST
+PROMPT='%~${vcs_info_msg_0_} %# '
+
+# ── 7. Plugins + tool completions ─────────────────────────────────────────
+# Installed via apt in the Dockerfile dev stage. zsh-autosuggestions shows a
+# greyed-out suggestion from history (→ / End to accept). Tool completions are
+# eval-guarded so a missing binary can't break shell startup.
+[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && \
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+command -v gh  >/dev/null 2>&1 && eval "$(gh completion -s zsh)"
+
+# zsh-syntax-highlighting MUST be sourced LAST — it hooks every other widget to
+# colour the command line as you type (valid command green, typo red), so any
+# widget/binding defined after it would be invisible to the highlighter.
+[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] && \
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

@@ -1,0 +1,62 @@
+{
+  // Everything Docker-side is named after the project folder (the parent of .devcontainer/),
+  // so containers and volumes of different projects never collide. The folder name must be
+  // Docker-safe: letters, digits, `_`, `.`, `-` — no spaces.
+  "name": "${localWorkspaceFolderBasename}",
+  "build": { "dockerfile": "Dockerfile" },
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "remoteUser": "node",
+  // tini as PID 1: reaps orphaned child processes (language servers, watchers)
+  // that would otherwise pile up as <defunct> zombies.
+  "init": true,
+  // Hard memory ceiling: an over-committed container OOM-kills one process instead
+  // of stalling the whole VM. Size it below your Docker VM's RAM.
+  "runArgs": ["--memory=8g", "--name=${localWorkspaceFolderBasename}-devcontainer"],
+  "mounts": [
+    // node_modules in a named volume: much faster than a macOS/Windows bind mount,
+    // and keeps host-built native binaries out of the Linux container.
+    "source=${localWorkspaceFolderBasename}-node_modules,target=/workspace/node_modules,type=volume",
+    // Claude Code login, settings and history survive rebuilds (CLAUDE_CONFIG_DIR, see Dockerfile).
+    // Per project: each project keeps its own login, settings and history.
+    "source=${localWorkspaceFolderBasename}-claude-config,target=/home/node/.claude,type=volume",
+    // Shell history survives rebuilds.
+    "source=${localWorkspaceFolderBasename}-zsh-history,target=/commandhistory,type=volume"
+  ],
+  "containerEnv": {
+    "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
+    "HISTFILE": "/commandhistory/.zsh_history",
+    // File watchers on bind mounts miss events on macOS/Windows; polling is reliable.
+    "CHOKIDAR_USEPOLLING": "1",
+    "WATCHPACK_POLLING": "true"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": false
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+        "shd101wyy.markdown-preview-enhanced"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  // Volume ownership, Claude settings + memory wiring, zshrc, deps — see the script.
+  // Run through `bash` so a lost exec bit can't break container creation.
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "claude update || true",
+  "forwardPorts": [3000]
+}
