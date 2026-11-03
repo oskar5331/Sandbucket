@@ -98,15 +98,17 @@ Marked `is_system = true`. Cannot be deleted. Can be renamed by the `owner`. The
 | `expenses` | Expenses | Kulud | `expenses` | Internal debit account — auto-wired on received invoices (cost type) |
 | `opening_balances` | Opening Balances | Algsaldod | `opening_balances` | Counter-party for opening-balance entries (`prd.md` §6.17, §25) |
 
-### 3.2 Default Profile Settings
+### 3.3 Default Profile Settings
 
 ```
 currency:          EUR
-date_format:       DD.MM.YYYY
-decimal_separator: ,
-locale:            et   # override to 'en' via DEFAULT_LOCALE env var for self-hosters
-fiscal_year_start: 01-01
 ```
+
+Currency is the only per-profile setting (`prd.md` §10). Everything else is fixed app-wide and is not stored on the profile (decided 2026-11-02):
+
+- **UI language** (`en` / `et`): per device, via the `NEXT_LOCALE` cookie (`prd.md` §16).
+- **Date and number format:** DD.MM.YYYY and Estonian number rules in both languages (`prd.md` §6.15, §16).
+- **Fiscal year:** calendar year. No setting and no column until a feature needs one.
 
 ---
 
@@ -149,7 +151,6 @@ The `admin` UI is fully isolated from the main bookkeeping app — separate rout
 | `ADMIN_EMAIL` | Yes (first deploy) | none | Email address for the platform admin account |
 | `ADMIN_INITIAL_PASSWORD` | Yes (first deploy) | none | Initial password for the platform admin. Seed aborts if unset. |
 | `ALLOW_REGISTRATION` | No | `true` | Set to `false` to disable public sign-up |
-| `DEFAULT_LOCALE` | No | `et` | Default locale for new profiles (`et` or `en`) |
 | `DATABASE_URL` | Yes | none | Postgres connection string for the **`sandbucket_app`** role — all request traffic, subject to RLS (`prd.md` §19). Hosted: Fly Managed Postgres over the org's private network. Self-host: the Compose `postgres` service. Server-side only. |
 | `DATABASE_OWNER_URL` | Yes | none | Connection string for the **`sandbucket_owner`** role — runs dbmate migrations (`release_command`, `prd.md` §29) and backs the quarantined bootstrap handle (§12). Bypasses RLS. Server-side only. |
 | `BETTER_AUTH_SECRET` | Yes | none | Signing secret for better-auth sessions and tokens (`prd.md` §21) |

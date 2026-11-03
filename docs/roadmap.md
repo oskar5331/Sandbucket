@@ -46,7 +46,7 @@ These are standing obligations, not milestones. They come straight from the PRD,
 **Goal:** an empty app that builds into the production Docker image, with every CI gate wired before there is code to guard.
 
 - Create the `sandbucket` repo with the layout from §14. Move these docs into `docs/`.
-- `package.json` pinned to the exact versions in `stack-versions.md`, with `packageManager` set to pnpm. **Confirm TypeScript 7 works with `next build`**, or fall back as `stack-versions.md` says, and record the result there.
+- `package.json` pinned to the exact versions in `stack-versions.md`, with `packageManager` set to pnpm. ~~Confirm TypeScript 7 works with `next build`~~ Done 2026-11-02: the build works, but typescript-eslint doesn't support TS 7, so the project is pinned to 6.0.3 (`stack-versions.md`).
 - `Dockerfile` (Node 26, `next start`, dbmate in the image) and `fly.toml` (§17, §29).
 - `compose.yaml` with app, Postgres and MinIO for local dev and self-host (§8, §17).
 - ESLint with the `no-restricted-imports` quarantine on `lib/db/unsafe.ts` (§12).
@@ -86,7 +86,7 @@ These are standing obligations, not milestones. They come straight from the PRD,
 - Email + password, verification before first sign-in, password reset (§21, `setup-config.md §4.4`). `ALLOW_REGISTRATION` toggle (`setup-config.md §4.1`).
 - `lib/email/send.ts` with the Resend and SMTP providers (§22).
 - Platform admin seed from `ADMIN_EMAIL` / `ADMIN_INITIAL_PASSWORD`. It aborts when either is unset (`setup-config.md §2`).
-- First-login default profile, plus profile create (currency picker, §10) and profile switcher (§6.1). The profile seed runs on the owner handle (`setup-config.md §3`). **Blocked on open question Q1** for which settings the seed writes.
+- First-login default profile, plus profile create (currency picker, §10) and profile switcher (§6.1). The profile seed runs on the owner handle (`setup-config.md §3`).
 - next-intl wiring: `NEXT_LOCALE` cookie, Accept-Language fallback, typed keys, `messages/en.json` + `messages/et.json` (§16).
 - shadcn/ui scaffold and §27 tokens (light and dark), the mobile app shell and navigation (§15, §27).
 - Structured JSON logging to stdout (§30). It's cheap to add now and harder to retrofit.
@@ -102,7 +102,7 @@ These are standing obligations, not milestones. They come straight from the PRD,
 
 **Goal:** the double-entry core, built and unit-proven with no UI on top.
 
-- `Money` value object and its Zod boundary (§9, §13).
+- `Money` value object and its Zod boundary (§9, §13), plus the amount-input parser beside it (§16). The parser gets a unit test per rule: `.` and `,` both accepted, spaces ignored, mixed marks refused, too many decimals for the currency refused (EUR and JPY cases).
 - `party` table with every column MVP needs, so later milestones don't migrate it again: type enum including `opening_balances` (§6.2), `is_system`/`system_key`, `is_group`/`parent_party_id` (§24), `custodian_party_id` + CHECK (§31), `linked_user_id` + CHECK + unique (§32), soft delete (§8). RLS and cross-tenant test included.
 - `transaction_group` (type, `currency_code` + §10 guard, `linked_transaction_group_id` §26) and `record`, hard delete with cascade (§8). RLS and tests included.
 - The nine posting handlers as pure functions from validated input to Records (§4 table, §25, §31), plus persistence through the accessor.
@@ -233,8 +233,11 @@ Scoped down from `setup-config.md §4.3` (decision 2026-11-01): MVP gets the see
 
 | # | Question | Blocks | Notes |
 |---|---|---|---|
-| Q1 | `setup-config.md §3.2` *Default Profile Settings* stores `locale`, `date_format` and `decimal_separator` per profile, and `DEFAULT_LOCALE` defaults to `et`. PRD §16 says locale is per-device (cookie), not on the profile, and falls back to `en`. Which wins? | M2 profile seed | The PRD looks authoritative. If so, `setup-config.md §3.2` drops those keys and `DEFAULT_LOCALE` is redefined or removed. Is `fiscal_year_start` used anywhere in MVP? |
-| Q2 | When does the §29 "merge to `main` → production" deploy go live? Wiring it in M0 deploys a half-built app on every merge. Wiring it in M11 leaves the deploy path untested until launch. | M0 / M11 | Suggestion: wire it in M0 with `ALLOW_REGISTRATION=false` until launch, so the pipeline is exercised from day one but nobody can sign up. |
+| Q1 | ~~Per-profile locale and format settings vs PRD §16~~ | — | **Resolved 2026-11-02.** Only currency is stored per profile. Language stays per device (en/et). Dates and numbers are fixed, with Estonian number rules in both languages. Amount input accepts `.` or `,`. `DEFAULT_LOCALE` removed. See PRD §6.15, §16 and `setup-config.md §3.3`. |
+| Q2 | ~~When does the §29 production deploy go live?~~ | — | **Resolved 2026-11-02: at M11.** Before then the app runs only locally and in CI. Accepted risk: Fly-only assumptions are first tested at launch. Known examples: whether Managed Postgres allows the two §19 roles, Tigris CORS for browser uploads (§20), Resend domain DNS (§22), and `release_command` reaching Postgres over the private network. |
+| Q3 | Before launch, may migrations be destructive (or the database reset), or does expand/contract (§29) apply from day one? | — | Matters less now that nothing deploys before M11. To review. |
+| Q4 | `setup-config.md §4.1` says only the admin can create accounts when `ALLOW_REGISTRATION=false`, but M10 has no "admin creates user". As planned, self-hosters with registration off can't add anyone. | M10 | Suggestion: add "admin creates user" to M10. To review. |
+| Q5 | Next.js bakes `NEXT_PUBLIC_*` variables into the image at build time, so `NEXT_PUBLIC_APP_URL` would hard-code the hosted URL into the self-host image. That breaks §17's "same image, different env". | M0 | Suggestion: a server-only runtime variable, since only auth email links need it. To review before M0's Dockerfile. |
 
 ---
 
