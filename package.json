@@ -16,6 +16,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium webkit",
     "size": "size-limit"
   },
   "dependencies": {
