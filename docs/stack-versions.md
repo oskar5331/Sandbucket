@@ -36,13 +36,16 @@ At bootstrap, `package.json` uses these exact versions and `pnpm-lock.yaml` beco
 | Component | Version | PRD ref | Notes |
 |---|---|---|---|
 | PostgreSQL | **17** (major) | §18 | Plain Postgres, no vendor extensions. Used by `compose.yaml`, the devcontainer and CI. Supported until 2029-11-08. 18 is the current major; 17 was chosen on 2026-11-02. Fly isn't provisioned until M11 (`roadmap.md` Q2), so confirm then that Managed Postgres offers 17, and keep every environment on the same major. |
+| Postgres image | `postgres:17.11-bookworm` | §18, §28 | `compose.yaml` and the CI service container. A test asserts both use the same tag. |
+| Garage (`dxflrs/garage`) | v2.5.0 | §8, §20 | Self-host, local dev and CI object store. Replaced MinIO on 2026-11-03: MinIO's repository is archived and its Docker Hub image is gone. AGPL-3.0, runs as a separate service, so it doesn't affect the app's MIT license. |
+| curl image (`curlimages/curl`) | 8.23.0 | §20 | Runs the one-shot Garage setup script (`compose/garage-init.sh`). The Garage image has no shell. |
 | `pg` | 8.23.1 | §8 | Connection pool. |
 | `uuidv7` | 1.2.1 | §6 | Primary keys, generated in Node. |
 | Kysely | 0.29.8 | §8, §18 | Requires Node ≥ 22. |
 | kysely-codegen | 0.20.0 | §18 | Type generation from the migrated schema. |
 | dbmate | 2.37.0 | §18 | Migrations. |
 | better-auth | 1.7.15 | §21 | |
-| AWS SDK (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) | 3.1161.0 | §20 | Same code against Tigris (hosted) and MinIO (self-host). |
+| AWS SDK (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) | 3.1161.0 | §20 | Same code against Tigris (hosted) and Garage (self-host). |
 | Resend (`resend`) | 6.37.0 | §22 | Hosted email. |
 | Nodemailer | 10.3.1 | §22 | SMTP for self-host. |
 
@@ -54,6 +57,7 @@ At bootstrap, `package.json` uses these exact versions and `pnpm-lock.yaml` beco
 | Playwright (`@playwright/test`) | 1.64.1 | §28 | |
 | ESLint | 10.14.0 | §12 | Hosts the `no-restricted-imports` quarantine rule for `lib/db/unsafe.ts`. |
 | `eslint-config-next` | 16.4.3 | §12 | Matches the Next.js version. |
+| GitHub Actions (`actions/checkout`, `actions/setup-node`) | v7.0.1, v7.1.0 | §29 | Pinned by tag in `.github/workflows/pr.yml`. Node comes from `.node-version`. |
 | size-limit (`size-limit`, `@size-limit/file`) | 14.3.0 | §8, §29 | Initial-JS budget. Config in `.size-limit.js` reads the route list from the build output. |
 
 ## Compatibility check (2026-10-31)

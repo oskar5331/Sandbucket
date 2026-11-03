@@ -156,9 +156,12 @@ The `admin` UI is fully isolated from the main bookkeeping app — separate rout
 | `BETTER_AUTH_SECRET` | Yes | none | Signing secret for better-auth sessions and tokens (`prd.md` §21) |
 | `BETTER_AUTH_URL` | Yes | none | Canonical base URL better-auth issues cookies and links against |
 | `BUCKET_NAME` | Yes | none | Object-storage bucket for attachments (`prd.md` §20). Set automatically by `fly storage create`. |
-| `AWS_ENDPOINT_URL_S3` | Yes | none | S3 endpoint — Tigris (`https://t3.storage.dev`) hosted, MinIO endpoint self-host |
+| `AWS_ENDPOINT_URL_S3` | Yes | none | S3 endpoint the server uses — Tigris (`https://t3.storage.dev`) hosted, Garage self-host (`http://garage:3900` inside Compose) |
+| `S3_PUBLIC_ENDPOINT_URL` | No | `AWS_ENDPOINT_URL_S3` | Endpoint presigned URLs are signed against, i.e. the one the browser can reach (`prd.md` §20). Set it when that differs from the server's, e.g. `http://localhost:3900` for local Compose. |
 | `AWS_ACCESS_KEY_ID` | Yes | none | Object-storage access key. Tigris shows this once at bucket creation and cannot re-issue it — capture it then. |
 | `AWS_SECRET_ACCESS_KEY` | Yes | none | Object-storage secret key. Same one-time-only caveat. Server-side only. |
+| `GARAGE_RPC_SECRET` | Self-host | none | Garage node secret, 32 bytes hex (`openssl rand -hex 32`). Used only by the `garage` Compose service. |
+| `GARAGE_ADMIN_TOKEN` | Self-host | none | Garage admin API token (`openssl rand -base64 32`). Used only by the one-shot `storage-init` service to create the bucket, key and CORS rule. |
 | `RESEND_API_KEY` | Hosted | none | Transactional email provider key (`prd.md` §22). Omit when using SMTP. |
 | `SMTP_URL` | Self-host | none | SMTP connection string used instead of Resend. One of `RESEND_API_KEY` / `SMTP_URL` must be set. |
 | `EMAIL_FROM` | Yes | none | Sender address for verification, reset, and OTP mail |

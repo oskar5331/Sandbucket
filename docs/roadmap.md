@@ -47,8 +47,8 @@ These are standing obligations, not milestones. They come straight from the PRD,
 
 - Create the `sandbucket` repo with the layout from §14. Move these docs into `docs/`.
 - `package.json` pinned to the exact versions in `stack-versions.md`, with `packageManager` set to pnpm. ~~Confirm TypeScript 7 works with `next build`~~ Done 2026-11-02: the build works, but typescript-eslint doesn't support TS 7, so the project is pinned to 6.0.3 (`stack-versions.md`).
-- `Dockerfile` (Node 26, `next start`, dbmate in the image) and `fly.toml` (§17, §29).
-- `compose.yaml` with app, Postgres and MinIO for local dev and self-host (§8, §17).
+- `Dockerfile` (Node 26, `next start`, dbmate in the image) (§17, §29). `fly.toml` moves to M11, since nothing deploys before then (Q2).
+- `compose.yaml` with app, Postgres and Garage for local dev and self-host (§8, §17). The devcontainer reuses it.
 - ESLint with the `no-restricted-imports` quarantine on `lib/db/unsafe.ts` (§12).
 - GitHub Actions PR workflow: lint, typecheck, Vitest, Playwright against the built image, `size-limit`, kysely-codegen drift check (§29). Each step may run against a trivial target for now.
 
@@ -163,11 +163,13 @@ These are standing obligations, not milestones. They come straight from the PRD,
 - Attachment metadata table with RLS and cross-tenant test (§19). Presigned PUT/GET with 60 s TTL, minted only after the accessor read (§20).
 - Client-side jSquash compression, HEIC fallback, 10 MB + MIME allowlist enforced at presign and in Zod (§6.13, §20, §23a).
 - Camera capture and file upload. Images inline, PDFs and undecodable HEIC as download links (§6.13).
-- Same code path against MinIO (self-host) and Tigris (hosted).
+- Same code path against Garage (self-host and CI) and Tigris (hosted). CI uses real Garage, not a mock (S3Mock validates neither signatures nor CORS).
+- §20 enforcement: signed `Content-Length` / `Content-Type`, then a `HeadObject` check before the key is saved. URLs signed against `S3_PUBLIC_ENDPOINT_URL`.
 
 **Exit criteria**
 - [ ] Playwright attachment journey (§28).
 - [ ] A user of profile B cannot obtain a URL for profile A's attachment.
+- [ ] Browser-level tests against Garage: upload and display succeed through CORS; an oversized upload, a wrong content type and an expired URL are each refused.
 
 ---
 
@@ -237,6 +239,7 @@ Scoped down from `setup-config.md §4.3` (decision 2026-11-01): MVP gets the see
 | Q2 | ~~When does the §29 production deploy go live?~~ | — | **Resolved 2026-11-02: at M11.** Before then the app runs only locally and in CI. Accepted risk: Fly-only assumptions are first tested at launch. Known examples: whether Managed Postgres allows the two §19 roles, Tigris CORS for browser uploads (§20), Resend domain DNS (§22), and `release_command` reaching Postgres over the private network. |
 | Q3 | Before launch, may migrations be destructive (or the database reset), or does expand/contract (§29) apply from day one? | — | Matters less now that nothing deploys before M11. To review. |
 | Q4 | `setup-config.md §4.1` says only the admin can create accounts when `ALLOW_REGISTRATION=false`, but M10 has no "admin creates user". As planned, self-hosters with registration off can't add anyone. | M10 | Suggestion: add "admin creates user" to M10. To review. |
+| Q6 | ~~MinIO for self-host object storage~~ | — | **Resolved 2026-11-03: Garage.** MinIO's repository is archived and its image withdrawn. CI uses the same Garage service (not S3Mock). §20 also gained signed-header + `HeadObject` enforcement and `S3_PUBLIC_ENDPOINT_URL`. |
 | Q5 | Next.js bakes `NEXT_PUBLIC_*` variables into the image at build time, so `NEXT_PUBLIC_APP_URL` would hard-code the hosted URL into the self-host image. That breaks §17's "same image, different env". | M0 | Suggestion: a server-only runtime variable, since only auth email links need it. To review before M0's Dockerfile. |
 
 ---
