@@ -38,7 +38,6 @@ At bootstrap, `package.json` uses these exact versions and `pnpm-lock.yaml` beco
 | PostgreSQL | **17** (major) | §18 | Plain Postgres, no vendor extensions. Used by `compose.yaml`, the devcontainer and CI. Supported until 2029-11-08. 18 is the current major; 17 was chosen on 2026-11-02. Fly isn't provisioned until M11 (`roadmap.md` Q2), so confirm then that Managed Postgres offers 17, and keep every environment on the same major. |
 | Postgres image | `postgres:17.11-bookworm` | §18, §28 | `compose.yaml` and the CI service container. A test asserts both use the same tag. |
 | Garage (`dxflrs/garage`) | v2.5.0 | §8, §20 | Self-host, local dev and CI object store. Replaced MinIO on 2026-11-03: MinIO's repository is archived and its Docker Hub image is gone. AGPL-3.0, runs as a separate service, so it doesn't affect the app's MIT license. |
-| curl image (`curlimages/curl`) | 8.23.0 | §20 | Runs the one-shot Garage setup script (`compose/garage-init.sh`). The Garage image has no shell. |
 | `pg` | 8.23.1 | §8 | Connection pool. |
 | `uuidv7` | 1.2.1 | §6 | Primary keys, generated in Node. |
 | Kysely | 0.29.8 | §8, §18 | Requires Node ≥ 22. |

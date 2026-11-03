@@ -20,9 +20,24 @@ describe("Node version", () => {
     expect(pkg.engines?.node).toBe(`>=${nodeVersion}`);
   });
 
+  it("every node image in compose.yaml uses exactly that version", () => {
+    const tags = [...read("compose.yaml").matchAll(/image:\s*node:(\S+)/g)].map((m) => m[1]);
+    expect(tags.length).toBeGreaterThan(0);
+    for (const tag of tags) expect(tag).toMatch(new RegExp(`^${nodeVersion.replaceAll(".", "\\.")}-`));
+  });
+
   it("the devcontainer image uses the same major", () => {
     const tags = [...read(".devcontainer/Dockerfile").matchAll(/^FROM node:(\S+)/gm)].map((m) => m[1]);
     expect(tags.length).toBeGreaterThan(0);
     for (const tag of tags) expect(tag?.split(/[.-]/)[0]).toBe(nodeMajor);
+  });
+});
+
+describe("object storage config", () => {
+  it(".env.example signs with the region Garage serves (a mismatch is a 403 SignatureDoesNotMatch)", () => {
+    const serverRegion = read("compose/garage.toml").match(/^s3_region\s*=\s*"([^"]+)"/m)?.[1];
+    const clientRegion = read(".env.example").match(/^AWS_REGION=(.*)$/m)?.[1];
+    expect(serverRegion).toBeDefined();
+    expect(clientRegion).toBe(serverRegion);
   });
 });

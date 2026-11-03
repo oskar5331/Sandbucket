@@ -1,0 +1,22 @@
+# Garage single-node config for local dev, CI and self-host (docs/prd.md §8, §20).
+# Secrets are NOT in this file: Garage reads GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN
+# from the environment (compose.yaml passes them from .env).
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+# One node, one copy. A self-hoster who wants redundancy runs a real Garage cluster.
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+# The AWS SDK must sign with this region and use path-style URLs.
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+
+[admin]
+# Used only by the one-shot storage-init service; the port is not published.
+api_bind_addr = "[::]:3903"

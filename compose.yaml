@@ -1,0 +1,71 @@
+# Sandbucket stack: self-host (`docker compose up`) and the dev container
+# (.devcontainer/ reuses this file and adds its own workspace service).
+# Values come from .env; copy .env.example and replace every dev-only value
+# before exposing this anywhere (docs/setup-config.md §5).
+
+services:
+  postgres:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: sandbucket
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "sandbucket"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    # Not published: only the app (and the dev container) reach it, over the
+    # Compose network.
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET in .env}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set GARAGE_ADMIN_TOKEN in .env}
+    volumes:
+      - ./compose/garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    ports:
+      # S3 API, published because the browser uploads and downloads directly
+      # through presigned URLs (docs/prd.md §20). RPC and admin stay internal.
+      - "3900:3900"
+
+  storage-init:
+    image: node:26.13.0-bookworm-slim
+    command: ["node", "/init/garage-init.mjs"]
+    environment:
+      GARAGE_ADMIN_URL: http://garage:3903
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set GARAGE_ADMIN_TOKEN in .env}
+      BUCKET_NAME: ${BUCKET_NAME:?set BUCKET_NAME in .env}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in .env}
+    volumes:
+      - ./compose/garage-init.mjs:/init/garage-init.mjs:ro
+    depends_on:
+      - garage
+    restart: "no"
+
+  app:
+    build: .
+    env_file: .env
+    environment:
+      # Inside Compose the server reaches the store by service name, while the
+      # browser reaches the published port, so presigning uses the public one.
+      AWS_ENDPOINT_URL_S3: http://garage:3900
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:3900}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  garage-meta:
+  garage-data:
