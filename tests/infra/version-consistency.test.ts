@@ -87,6 +87,35 @@ describe("CI workflow", () => {
   });
 });
 
+describe("devcontainer package manager", () => {
+  const devDockerfile = () => read(".devcontainer/Dockerfile");
+
+  it("prepares the pnpm version pinned in package.json packageManager", () => {
+    const pkg = JSON.parse(read("package.json")) as { packageManager?: string };
+    const pinned = pkg.packageManager?.match(/^pnpm@(\d+\.\d+\.\d+)$/)?.[1];
+    const prepared = devDockerfile().match(/^ARG PNPM_VERSION=(\S+)$/m)?.[1];
+    expect(pinned).toBeDefined();
+    expect(prepared).toBe(pinned);
+  });
+
+  it("installs the same exact corepack version as the production Dockerfile", () => {
+    const inDocker = read("Dockerfile").match(/corepack@(\S+)/)?.[1];
+    const installs = [...devDockerfile().matchAll(/npm install -g ([^\n\\&]+)/g)].flatMap((m) => m[1]!.trim().split(/\s+/));
+    const corepack = installs.filter((p) => p === "corepack" || p.startsWith("corepack@"));
+    expect(inDocker).toBeDefined();
+    expect(corepack).toEqual([`corepack@${inDocker}`]);
+  });
+});
+
+describe("compose app service", () => {
+  it("takes its config only from env_file, with no environment: block overriding .env", () => {
+    const app = read("compose.yaml").match(/^  app:\n((?:    .*\n|\s*\n)*)/m)?.[1];
+    expect(app).toBeDefined();
+    expect(app).toMatch(/^    env_file:/m);
+    expect(app).not.toMatch(/^    environment:/m);
+  });
+});
+
 describe("Postgres version", () => {
   it("the devcontainer's psql/pg_dump client matches the compose server major (dbmate's schema dump needs pg_dump >= server)", () => {
     const serverMajor = read("compose.yaml").match(/image:\s*postgres:(\d+)/)?.[1];
