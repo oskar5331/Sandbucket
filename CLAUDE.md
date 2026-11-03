@@ -6,6 +6,7 @@ This file is the operating contract for any agent (or human) modifying this repo
 
 - **Be skeptical; ask before assuming.** Never fill a gap with a silent assumption. When the request is ambiguous, the requirements are unclear, or there's more than one reasonable reading, stop and ask. Surface unstated assumptions instead of acting on them. A clarifying question is always cheaper than confidently building the wrong thing.
 - **Never commit on your own.** We review the work together before anything is committed. Default to hands-off on `git commit`.
+- **Run `/pre-dev` in plan mode before changing application code.** Before the first edit to `app/`, `lib/`, `components/`, `db/`, `messages/` or `public/`, run the `pre-dev` skill: it maps the task to its sources, checks for existing code to reuse, routes DB changes through `backend-spec`, and stops for my OK.
 - **Run `/task-retro` when the task is done.** Once work is finished and ready to commit, invoke the `task-retro` skill for a brief honest retrospective before we review.
 - **Render tables as delimited markdown, never ASCII boxes.** Any table — in chat, docs, or a `.md` file — uses pipe-delimited markdown (`| col | col |` with a `|---|---|` separator), not hand-drawn `┌─┐│└┘` box-drawing. Escape a literal `|` as `\|` and use `<br>` for an in-cell line break.
 - **No real people or customers in fixtures, tests, or sample data.** Use obviously invented names and the reserved `.test` TLD, so nobody debugging later wonders whether a value is real.
