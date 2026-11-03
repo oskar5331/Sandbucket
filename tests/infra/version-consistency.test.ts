@@ -26,6 +26,12 @@ describe("Node version", () => {
     for (const tag of tags) expect(tag).toMatch(new RegExp(`^${nodeVersion.replaceAll(".", "\\.")}-`));
   });
 
+  it("every FROM node stage in the production Dockerfile uses exactly that version", () => {
+    const tags = [...read("Dockerfile").matchAll(/^FROM node:(\S+)/gm)].map((m) => m[1]);
+    expect(tags.length).toBeGreaterThan(0);
+    for (const tag of tags) expect(tag).toMatch(new RegExp(`^${nodeVersion.replaceAll(".", "\\.")}-`));
+  });
+
   it("the devcontainer image uses the same major", () => {
     const tags = [...read(".devcontainer/Dockerfile").matchAll(/^FROM node:(\S+)/gm)].map((m) => m[1]);
     expect(tags.length).toBeGreaterThan(0);
@@ -39,5 +45,14 @@ describe("object storage config", () => {
     const clientRegion = read(".env.example").match(/^AWS_REGION=(.*)$/m)?.[1];
     expect(serverRegion).toBeDefined();
     expect(clientRegion).toBe(serverRegion);
+  });
+});
+
+describe("dbmate", () => {
+  it("the Dockerfile installs the version pinned in docs/stack-versions.md", () => {
+    const pinned = read("docs/stack-versions.md").match(/^\| dbmate \| (\S+) \|/m)?.[1];
+    const installed = read("Dockerfile").match(/^ARG DBMATE_VERSION=(\S+)$/m)?.[1];
+    expect(pinned).toBeDefined();
+    expect(installed).toBe(pinned);
   });
 });

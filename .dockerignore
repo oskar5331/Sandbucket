@@ -1,0 +1,17 @@
+# Keep the build context to what the image needs. Secrets must never enter it.
+.git
+node_modules
+.next
+docs
+.devcontainer
+.claude
+.github
+tests
+e2e
+playwright-report
+test-results
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
