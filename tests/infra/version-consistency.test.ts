@@ -56,3 +56,33 @@ describe("dbmate", () => {
     expect(installed).toBe(pinned);
   });
 });
+
+describe("CI workflow", () => {
+  const workflow = () => read(".github/workflows/pr.yml");
+
+  it("takes Node from .node-version, never a hard-coded version", () => {
+    expect(workflow()).toMatch(/node-version-file:\s*\.node-version/);
+    expect(workflow()).not.toMatch(/^\s*node-version:/m);
+  });
+
+  it("pins every action to the exact tag listed in docs/stack-versions.md", () => {
+    const uses = [...workflow().matchAll(/uses:\s*([\w-]+\/[\w-]+)@(\S+)/g)];
+    expect(uses.length).toBeGreaterThan(0);
+    const table = read("docs/stack-versions.md");
+    for (const [, action, tag] of uses) {
+      expect(tag, `${action} must use an exact vX.Y.Z tag`).toMatch(/^v\d+\.\d+\.\d+$/);
+      const escaped = action!.replace("/", "\\/");
+      const pinned = table.match(new RegExp(`^\\| \`${escaped}\` \\| (\\S+) \\|`, "m"))?.[1];
+      expect(pinned, `${action} has no row in stack-versions.md`).toBeDefined();
+      expect(tag).toBe(pinned);
+    }
+  });
+
+  it("installs the same corepack version as the Dockerfile", () => {
+    const inDocker = read("Dockerfile").match(/corepack@(\S+)/)?.[1];
+    const inCi = [...workflow().matchAll(/corepack@(\S+)/g)].map((m) => m[1]);
+    expect(inDocker).toBeDefined();
+    expect(inCi.length).toBeGreaterThan(0);
+    for (const version of inCi) expect(version).toBe(inDocker);
+  });
+});

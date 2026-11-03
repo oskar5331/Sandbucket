@@ -1,0 +1,70 @@
+# Merge gate (docs/prd.md §29): every check must pass before merging.
+# No deploy job: production deploys are wired at M11 (docs/roadmap.md, Q2).
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same PR (or ref) cancels its stale run.
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    # M1: add a Postgres service container (same image as compose.yaml) and the
+    # kysely-codegen drift check here, once there is a schema.
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+      # Node 25+ no longer bundles corepack; pnpm's version comes from package.json.
+      - run: npm install -g corepack@0.36.0 && corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm size
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+      - run: npm install -g corepack@0.36.0 && corepack enable
+      - run: pnpm install --frozen-lockfile
+      # Test the image that ships, not `next dev` (prd.md §28).
+      - run: docker build -t sandbucket:ci .
+      - run: docker run -d --name app -p 3000:3000 sandbucket:ci
+      - name: Wait for the app
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null http://localhost:3000/ && exit 0
+            sleep 1
+          done
+          docker logs app
+          exit 1
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:3000
+      - if: failure()
+        run: docker logs app
+      - if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

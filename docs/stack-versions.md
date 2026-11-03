@@ -56,7 +56,9 @@ At bootstrap, `package.json` uses these exact versions and `pnpm-lock.yaml` beco
 | Playwright (`@playwright/test`) | 1.64.1 | §28 | |
 | ESLint | 10.14.0 | §12 | Hosts the `no-restricted-imports` quarantine rule for `lib/db/unsafe.ts`. |
 | `eslint-config-next` | 16.4.3 | §12 | Matches the Next.js version. |
-| GitHub Actions (`actions/checkout`, `actions/setup-node`) | v7.0.1, v7.1.0 | §29 | Pinned by tag in `.github/workflows/pr.yml`. Node comes from `.node-version`. |
+| `actions/checkout` | v7.0.1 | §29 | Pinned by exact tag in `.github/workflows/pr.yml`; a test keeps the workflow and this table in step. |
+| `actions/setup-node` | v7.1.0 | §29 | Reads Node from `.node-version`. |
+| `actions/upload-artifact` | v7.0.2 | §29 | Uploads the Playwright report when e2e fails. |
 | size-limit (`size-limit`, `@size-limit/file`) | 14.3.0 | §8, §29 | Initial-JS budget. Config in `.size-limit.js` reads the route list from the build output. |
 
 ## Compatibility check (2026-10-31)
