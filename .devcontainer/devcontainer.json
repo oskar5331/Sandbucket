@@ -3,16 +3,20 @@
   // so containers and volumes of different projects never collide. The folder name must be
   // Docker-safe: letters, digits, `_`, `.`, `-` — no spaces.
   "name": "${localWorkspaceFolderBasename}",
-  "build": { "dockerfile": "Dockerfile" },
+  // Docker Compose: the root compose.yaml supplies the postgres and garage sidecars (the
+  // same definitions self-hosters run), and compose.devcontainer.yaml adds this workspace.
+  // The `app` service is not started in dev: run `pnpm dev` in the workspace instead.
+  "dockerComposeFile": ["../compose.yaml", "compose.devcontainer.yaml"],
+  "service": "workspace",
+  "runServices": ["workspace", "postgres", "garage", "storage-init"],
+  "shutdownAction": "stopCompose",
   "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "remoteUser": "node",
-  // tini as PID 1: reaps orphaned child processes (language servers, watchers)
-  // that would otherwise pile up as <defunct> zombies.
-  "init": true,
-  // Hard memory ceiling: an over-committed container OOM-kills one process instead
-  // of stalling the whole VM. Size it below your Docker VM's RAM.
-  "runArgs": ["--memory=8g", "--name=${localWorkspaceFolderBasename}-devcontainer"],
+  // compose.yaml refuses to start with unset secrets, and Compose reads .env on the HOST
+  // before any container exists, so the dev-only defaults are copied here, not in post-create.
+  "initializeCommand": "test -f .env || cp .env.example .env",
+  // `init` (tini as PID 1) and the memory ceiling live in compose.devcontainer.yaml:
+  // runArgs does not apply to Compose-based dev containers.
   "mounts": [
     // node_modules in a named volume: much faster than a macOS/Windows bind mount,
     // and keeps host-built native binaries out of the Linux container.

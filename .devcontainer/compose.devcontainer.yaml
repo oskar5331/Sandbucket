@@ -1,0 +1,22 @@
+# Dev container workspace, layered on top of the root compose.yaml
+# (devcontainer.json -> dockerComposeFile). With several Compose files, every
+# relative path resolves against the FIRST file's directory, i.e. the repo root,
+# so `.devcontainer` and `.` below are repo-root relative.
+#
+# Named volumes (node_modules, Claude config, shell history) are declared in
+# devcontainer.json `mounts`, where ${localWorkspaceFolderBasename} is expanded,
+# so the existing <project-folder>-* volumes are reused.
+
+services:
+  workspace:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace:cached
+    # tini as PID 1: reaps orphaned child processes (language servers, watchers).
+    init: true
+    # Hard memory ceiling: an over-committed container OOM-kills one process instead
+    # of stalling the whole VM. Size it below your Docker VM's RAM.
+    mem_limit: 8g
+    command: sleep infinity

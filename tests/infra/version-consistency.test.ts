@@ -86,3 +86,13 @@ describe("CI workflow", () => {
     for (const version of inCi) expect(version).toBe(inDocker);
   });
 });
+
+describe("Postgres version", () => {
+  it("the devcontainer's psql/pg_dump client matches the compose server major (dbmate's schema dump needs pg_dump >= server)", () => {
+    const serverMajor = read("compose.yaml").match(/image:\s*postgres:(\d+)/)?.[1];
+    const clientMajors = [...read(".devcontainer/Dockerfile").matchAll(/postgresql-client-(\d+)/g)].map((m) => m[1]);
+    expect(serverMajor).toBeDefined();
+    expect(clientMajors.length).toBeGreaterThan(0);
+    for (const major of clientMajors) expect(major).toBe(serverMajor);
+  });
+});

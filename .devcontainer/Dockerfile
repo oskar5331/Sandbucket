@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 #
 # Vanilla dev container: Node + pnpm, Python + uv, git, gh, zsh, Claude Code CLI.
-# No database, no browser, no app build stages — add those per project.
+# Postgres client included; the database itself runs as a Compose sidecar.
 
 FROM node:26-bookworm-slim
 
@@ -39,6 +39,18 @@ RUN apt-get update \
     && corepack enable \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
     && chown -R node:node /home/node/.npm-global /home/node/.local /home/node/.cache /home/node/.claude
+
+# psql + pg_dump from the PostgreSQL apt repo (PGDG), matching the compose server's
+# major: dbmate's schema dump needs a pg_dump at least as new as the server
+# (a test keeps the two majors in step).
+RUN install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+       https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+       > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && rm -rf /var/lib/apt/lists/*
 
 # uv — fast Python package/venv/version manager (`uv venv`, `uv pip`, `uv python install`).
 # Copied from its official image instead of curl|sh so the build is reproducible.
