@@ -19,7 +19,7 @@ const BUCKET = env("BUCKET_NAME");
 const KEY_ID = env("AWS_ACCESS_KEY_ID");
 const KEY_SECRET = env("AWS_SECRET_ACCESS_KEY");
 // The browser origin allowed to PUT/GET through presigned URLs.
-const APP_ORIGIN = new URL(env("NEXT_PUBLIC_APP_URL")).origin;
+const APP_ORIGIN = new URL(env("APP_URL")).origin;
 
 // Layout capacity only weights data placement between nodes; with one node it
 // has no practical effect and is not a quota.

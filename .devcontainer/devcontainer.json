@@ -8,7 +8,7 @@
   // The `app` service is not started in dev: run `pnpm dev` in the workspace instead.
   "dockerComposeFile": ["../compose.yaml", "compose.devcontainer.yaml"],
   "service": "workspace",
-  "runServices": ["workspace", "postgres", "garage", "storage-init"],
+  "runServices": ["workspace", "postgres", "db-init", "garage", "storage-init"],
   "shutdownAction": "stopCompose",
   "workspaceFolder": "/workspace",
   "remoteUser": "node",

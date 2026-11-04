@@ -8,6 +8,12 @@
 # so the existing <project-folder>-* volumes are reused.
 
 services:
+  # Dev also gets <database>_test (integration tests) and <database>_shadow (prisma
+  # migrate dev), see compose/db-init.sh.
+  db-init:
+    environment:
+      DB_INIT_DEV_DATABASES: "true"
+
   workspace:
     build:
       context: .devcontainer

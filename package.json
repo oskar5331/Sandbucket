@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium webkit",
-    "size": "size-limit"
+    "size": "size-limit",
+    "db:init": "set -a && { [ ! -f .env ] || . ./.env; } && set +a && DB_INIT_DEV_DATABASES=true bash compose/db-init.sh"
   },
   "dependencies": {
     "next": "16.4.3",

@@ -138,7 +138,7 @@ The `admin` UI is fully isolated from the main bookkeeping app — separate rout
 ### 4.4 Auth
 - Email + password via **better-auth** (`prd.md` §21); minimum 10 characters, no composition rules, no lockout, built-in rate limiting
 - Email one-time codes are the planned follow-on sign-in method, not MVP
-- Password reset via emailed single-use link; transactional email per `prd.md` §22 (Resend hosted / SMTP self-host)
+- Password reset via emailed single-use link; transactional email per `prd.md` §22 (SMTP, hosted and self-host)
 - Sessions are httpOnly + Secure + SameSite=Lax cookies, scoped to the user account, not to a profile — switching profiles does not require re-authentication
 - Profile isolation is enforced by the per-request profile-scoped accessor (`prd.md` §19), with Postgres RLS on every tenant-scoped table as a database backstop, a lint quarantine on the RLS-bypassing owner-role handle (§12), and per-table cross-tenant integration tests.
 
@@ -152,9 +152,8 @@ The `admin` UI is fully isolated from the main bookkeeping app — separate rout
 | `ADMIN_INITIAL_PASSWORD` | Yes (first deploy) | none | Initial password for the platform admin. Seed aborts if unset. |
 | `ALLOW_REGISTRATION` | No | `true` | Set to `false` to disable public sign-up |
 | `DATABASE_URL` | Yes | none | Postgres connection string for the **`sandbucket_app`** role — all request traffic, subject to RLS (`prd.md` §19). Hosted: Fly Managed Postgres over the org's private network. Self-host: the Compose `postgres` service. Server-side only. |
-| `DATABASE_OWNER_URL` | Yes | none | Connection string for the **`sandbucket_owner`** role — runs dbmate migrations (`release_command`, `prd.md` §29) and backs the quarantined bootstrap handle (§12). Bypasses RLS. Server-side only. |
+| `DATABASE_OWNER_URL` | Yes | none | Connection string for the **`sandbucket_owner`** role — runs Prisma migrations (`prisma migrate deploy`, `prd.md` §29) and backs the quarantined bootstrap handle (§12). Bypasses RLS. Server-side only. Self-host: the one-shot `db-init` service creates both roles from these two URLs, so their passwords must be URL-safe (`openssl rand -hex 32`). |
 | `BETTER_AUTH_SECRET` | Yes | none | Signing secret for better-auth sessions and tokens (`prd.md` §21) |
-| `BETTER_AUTH_URL` | Yes | none | Canonical base URL better-auth issues cookies and links against |
 | `BUCKET_NAME` | Yes | none | Object-storage bucket for attachments (`prd.md` §20). Set automatically by `fly storage create`. |
 | `AWS_ENDPOINT_URL_S3` | Yes | none | S3 endpoint the server uses — Tigris (`https://t3.storage.dev`) hosted, Garage self-host (`http://garage:3900` inside Compose) |
 | `AWS_REGION` | Yes | none | Region the S3 client signs with: `auto` for Tigris, `garage` for Garage (it must match `s3_region` in `compose/garage.toml`). |
@@ -164,9 +163,8 @@ The `admin` UI is fully isolated from the main bookkeeping app — separate rout
 | `POSTGRES_PASSWORD` | Self-host | none | Superuser password for the Compose `postgres` service. Not used by the app, which connects through `DATABASE_URL` / `DATABASE_OWNER_URL`. |
 | `GARAGE_RPC_SECRET` | Self-host | none | Garage node secret, 32 bytes hex (`openssl rand -hex 32`). Used only by the `garage` Compose service. |
 | `GARAGE_ADMIN_TOKEN` | Self-host | none | Garage admin API token (`openssl rand -base64 32`). Used only by the one-shot `storage-init` service to create the bucket, key and CORS rule. |
-| `RESEND_API_KEY` | Hosted | none | Transactional email provider key (`prd.md` §22). Omit when using SMTP. |
-| `SMTP_URL` | Self-host | none | SMTP connection string used instead of Resend. One of `RESEND_API_KEY` / `SMTP_URL` must be set. |
+| `SMTP_URL` | Yes | none | SMTP connection string for transactional email (`prd.md` §22), e.g. `smtps://user:pass@smtp.example.test:465`. Hosted and self-host alike: any SMTP server or relay. |
 | `EMAIL_FROM` | Yes | none | Sender address for verification, reset, and OTP mail |
-| `NEXT_PUBLIC_APP_URL` | Yes | none | Public URL of the deployed app (used in auth email links) |
+| `APP_URL` | Yes | none | Public URL of the deployed app: better-auth's base URL (cookies, email links) and the storage CORS origin. Read at runtime, so one image serves any URL (`roadmap.md` Q5). |
 
-No key in this table is exposed to the browser except `NEXT_PUBLIC_APP_URL`. Database credentials, storage keys, the better-auth secret, and the email provider key are read only in the Next.js Node runtime — as Fly secrets on the hosted deployment (`prd.md` §17), as Compose environment on self-host.
+No key in this table is exposed to the browser: none uses the `NEXT_PUBLIC_` prefix, which Next.js would inline at build time (a lint rule forbids reading one). Database credentials, storage keys, the better-auth secret, and the email provider key are read only in the Next.js Node runtime — as Fly secrets on the hosted deployment (`prd.md` §17), as Compose environment on self-host.

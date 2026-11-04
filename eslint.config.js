@@ -34,6 +34,25 @@ const config = [
       ],
     },
   },
+  {
+    // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time, which would bake one
+    // deployment's value into the image every self-hoster runs (prd.md §17, roadmap Q5).
+    // All config is read at runtime on the server, so the prefix has no legitimate use.
+    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...[
+          "MemberExpression[object.object.name='process'][object.property.name='env'][property.name=/^NEXT_PUBLIC_/]",
+          "MemberExpression[object.object.name='process'][object.property.name='env'][property.value=/^NEXT_PUBLIC_/]",
+        ].map((selector) => ({
+          selector,
+          message:
+            "NEXT_PUBLIC_* is inlined into the build (roadmap Q5). Read a server-only variable at runtime instead.",
+        })),
+      ],
+    },
+  },
 ];
 
 export default config;
