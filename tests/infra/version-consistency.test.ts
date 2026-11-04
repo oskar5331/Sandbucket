@@ -48,15 +48,6 @@ describe("object storage config", () => {
   });
 });
 
-describe("dbmate", () => {
-  it("the Dockerfile installs the version pinned in docs/stack-versions.md", () => {
-    const pinned = read("docs/stack-versions.md").match(/^\| dbmate \| (\S+) \|/m)?.[1];
-    const installed = read("Dockerfile").match(/^ARG DBMATE_VERSION=(\S+)$/m)?.[1];
-    expect(pinned).toBeDefined();
-    expect(installed).toBe(pinned);
-  });
-});
-
 describe("CI workflow", () => {
   const workflow = () => read(".github/workflows/pr.yml");
 

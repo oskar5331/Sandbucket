@@ -1,9 +1,9 @@
 ---
 name: pre-dev
-description: "Pre-coding gate for Sandbucket application code: fires automatically before the first edit to app/, lib/, components/, db/, messages/ or public/ for a task (feature, fix or refactor), and when the human invokes /pre-dev or asks what needs checking before coding. Maps the task to its PRD decisions, user story and roadmap milestone; searches for existing components, schemas, helpers, messages and test harnesses so nothing gets duplicated; lists the cross-cutting obligations (tenant accessor, Zod boundary, i18n, role tests, mobile, size budget); hands any database change to backend-spec; and collects every questionable point as an explicit question. Produces a checklist and STOPS for the human's confirmation before any code is written. Plan-only: never edits files. Skips infra/CI/docs/test-only changes."
+description: "Pre-coding gate for Sandbucket application code: fires automatically before the first edit to app/, lib/, components/, prisma/, messages/ or public/ for a task (feature, fix or refactor), and when the human invokes /pre-dev or asks what needs checking before coding. Maps the task to its PRD decisions, user story and roadmap milestone; searches for existing components, schemas, helpers, messages and test harnesses so nothing gets duplicated; lists the cross-cutting obligations (tenant accessor, Zod boundary, i18n, role tests, mobile, size budget); hands any database change to backend-spec; and collects every questionable point as an explicit question. Produces a checklist and STOPS for the human's confirmation before any code is written. Plan-only: never edits files. Skips infra/CI/docs/test-only changes."
 metadata:
   author: project
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # pre-dev
@@ -23,11 +23,11 @@ Log); if a row and its source disagree, the source wins and this row is fixed.
 
 | Setting | Value |
 |---|---|
-| Application code (triggers this skill) | `app/`, `lib/`, `components/`, `db/`, `messages/`, `public/` |
+| Application code (triggers this skill) | `app/`, `lib/`, `components/`, `prisma/`, `messages/`, `public/` |
 | Not application code (skip this skill) | `.devcontainer/`, `.github/`, `compose*`, `Dockerfile`, root config files, `docs/`, test-only changes under `tests/` / `e2e/` |
 | Decision sources | `docs/prd.md` (§6 scope, §9 Decisions Log), `docs/user-stories.md`, `docs/business-logic-spec.md`, `docs/cash-custodian.md`, `docs/setup-config.md`, `docs/backlog.md` (parked = out of scope) |
 | Plan + order | `docs/roadmap.md` — milestone, its dependencies and exit criteria, cross-cutting rules, open questions |
-| Reuse inventory — where existing solutions live | UI: `components/ui/` (shadcn, §15) and `components/`. Validation: `lib/schemas/*.ts` (input + value-object schemas, §13). Data access: `lib/db/` — `forProfile` accessor (§19), generated `lib/db/types.ts`. Money: the `Money` value object (§9). Email: `lib/email/send.ts` (§22). Strings: `messages/en.json` / `messages/et.json` (§16). Design tokens (§27). Tests: `tests/` harnesses (cross-tenant helper from M1), `e2e/` |
+| Reuse inventory — where existing solutions live | UI: `components/ui/` (shadcn, §15) and `components/`. Validation: `lib/schemas/*.ts` (input + value-object schemas, §13). Data access: `lib/db/` — `forProfile` accessor (§19), schema `prisma/schema.prisma` + generated client `lib/db/generated/`. Money: the `Money` value object (§9). Email: `lib/email/send.ts` (§22). Strings: `messages/en.json` / `messages/et.json` (§16). Design tokens (§27). Tests: `tests/` harnesses (cross-tenant helper from M1), `e2e/` |
 | DB-change hand-off | `backend-spec` skill |
 | Local checks to name in the plan | `pnpm lint`, `pnpm typecheck`, `pnpm test`; e2e/size are CI (see `pre-push-review`) |
 

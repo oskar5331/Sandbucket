@@ -41,8 +41,8 @@ RUN apt-get update \
     && chown -R node:node /home/node/.npm-global /home/node/.local /home/node/.cache /home/node/.claude
 
 # psql + pg_dump from the PostgreSQL apt repo (PGDG), matching the compose server's
-# major: dbmate's schema dump needs a pg_dump at least as new as the server
-# (a test keeps the two majors in step).
+# major (a test keeps the two in step): compose/db-init.sh runs on this psql in dev
+# (`pnpm db:init`), and a dump is only reliable from a pg_dump at least as new as the server.
 RUN install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
        https://www.postgresql.org/media/keys/ACCC4CF8.asc \

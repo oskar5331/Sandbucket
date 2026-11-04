@@ -3,7 +3,7 @@ name: pre-push-review
 description: "Fast housekeeping sweep over the local branch diff before commit/push. Reports obvious mechanical clean-up items (debug residue, stray files, malformed TODOs, WIP commit subjects, empty scaffolding, new lint warnings on touched files, failures from any test commands the project configures for local runs) plus a small set of judgement flags (suspicious unused symbols, duplicated helpers, missing changelog entry if the project keeps one) and reminders to sync docs whose documented surface changed. Report-only by default: never deletes, rewrites, squashes, or modifies files unless the human explicitly asks. Out of scope: code correctness, design, architecture, security, comment policing, judging doc content. Triggers: human invokes /pre-push-review, says they are about to commit / push / open a PR, or earlier conversation reminded them to run it."
 metadata:
   author: project
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # Pre-push review
@@ -26,7 +26,7 @@ unfilled placeholder must never be guessed at.
 | Checks deferred to CI (reported, never run here) | `pnpm build`, `pnpm size`, `pnpm test:e2e` (needs the production Docker image), full-repo lint — `.github/workflows/pr.yml` jobs `checks` and `e2e` |
 | Commands that must never run concurrently | `none` yet. From M1, integration tests and `test:e2e` share the compose Postgres — run them sequentially. |
 | TODO comment shape | `TODO: <description>` |
-| Vendor / generated paths to skip | `pnpm-lock.yaml` (from M1, also the kysely-codegen output) |
+| Vendor / generated paths to skip | `pnpm-lock.yaml` (the Prisma client in `lib/db/generated/` is gitignored, so never in the diff) |
 | Changelog file + rules | `none` |
 | Documented-surface doc pairs | See [Documented-surface sync](#documented-surface-sync-reminder) |
 | Project rule checks (optional) | See [Project rule checks](#project-rule-checks) |

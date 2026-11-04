@@ -21,7 +21,7 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     # M1: add a Postgres service container (same image as compose.yaml) and the
-    # kysely-codegen drift check here, once there is a schema.
+    # Prisma drift check (`prisma migrate diff`) here, once there is a schema.
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0
