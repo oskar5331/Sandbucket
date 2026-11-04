@@ -18,6 +18,7 @@ describe("NEXT_PUBLIC_* ban", () => {
     ["components/nav.tsx", `export const url = process.env["NEXT_PUBLIC_APP_URL"];`],
     ["lib/env.ts", `export const url = process.env.NEXT_PUBLIC_ANYTHING;`],
     ["proxy.ts", `export const url = process.env.NEXT_PUBLIC_APP_URL;`],
+    ["app/legacy.jsx", `export const url = process.env.NEXT_PUBLIC_APP_URL;`],
   ])("refuses the read in %s: %s", async (filePath, source) => {
     expect(await publicEnvErrors(filePath, source)).toHaveLength(1);
   });

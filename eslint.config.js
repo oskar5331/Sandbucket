@@ -38,7 +38,7 @@ const config = [
     // Next.js inlines `process.env.NEXT_PUBLIC_*` at build time, which would bake one
     // deployment's value into the image every self-hoster runs (prd.md §17, roadmap Q5).
     // All config is read at runtime on the server, so the prefix has no legitimate use.
-    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
     rules: {
       "no-restricted-syntax": [
         "error",

@@ -31,6 +31,12 @@ parse() {
   [[ ${!1} =~ $url_re ]] || die "$1 must look like postgres://user:password@host:port/database, with only URL-safe characters (A-Z a-z 0-9 . _ ~ -)"
   user=${BASH_REMATCH[2]} password=${BASH_REMATCH[3]} host=${BASH_REMATCH[4]}
   port=${BASH_REMATCH[6]:-5432} database=${BASH_REMATCH[7]}
+  # Only `public` is handed to the owner and granted to the app role below, so a URL
+  # pointing Prisma at another schema is refused here instead of failing at runtime.
+  local query=${BASH_REMATCH[8]} schema_re='[?&]schema=([^&]*)'
+  if [[ $query =~ $schema_re ]] && [ "${BASH_REMATCH[1]}" != "public" ]; then
+    die "$1 sets schema=${BASH_REMATCH[1]}; db-init prepares only the public schema"
+  fi
 }
 
 parse DATABASE_OWNER_URL
@@ -52,9 +58,15 @@ done
 sql() { psql -X -q -v ON_ERROR_STOP=1 "$@"; }
 
 # Roles. NOINHERIT and the explicit NO* attributes keep both roles exactly as §19 says,
-# even if one was created by hand with other attributes.
-sql -d postgres -v owner="$owner_role" -v owner_pw="$owner_password" \
-  -v app="$app_role" -v app_pw="$app_password" <<'SQL'
+# even if one was created by hand with other attributes. The passwords reach psql through
+# its environment (\getenv), never its argv, which any process can read with `ps`; and
+# statement logging is off for this session so ALTER ROLE ... PASSWORD stays out of the log.
+DB_INIT_OWNER_PW=$owner_password DB_INIT_APP_PW=$app_password \
+  sql -d postgres -v owner="$owner_role" -v app="$app_role" <<'SQL'
+SET log_statement = 'none';
+SET log_min_error_statement = 'panic';
+\getenv owner_pw DB_INIT_OWNER_PW
+\getenv app_pw DB_INIT_APP_PW
 SELECT format('CREATE ROLE %I', :'owner') WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'owner') \gexec
 SELECT format('CREATE ROLE %I', :'app') WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'app') \gexec
 ALTER ROLE :"owner" WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD :'owner_pw';

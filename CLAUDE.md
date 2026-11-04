@@ -33,6 +33,6 @@ TODO: the stack and the binding rules layered on it (database workflow, validati
 
 ## Dev environment
 
-- The dev container is defined in `.devcontainer/` — Node + pnpm, Python + uv, git, gh, zsh, Claude Code, `psql`. It runs on Docker Compose and reuses the root `compose.yaml`, so Postgres (`postgres:5432`) and Garage S3 (`garage:3900`) run as sidecars. The `app` service is not started in dev; run `pnpm dev`.
+- The dev container is defined in `.devcontainer/` — Node + pnpm, Python + uv, git, gh, zsh, Claude Code, `psql`. It runs on Docker Compose and reuses the root `compose.yaml`, so Postgres (`postgres:5432`) and Garage S3 (`garage:3900`) run as sidecars, and the one-shot `db-init` creates the `sandbucket_owner` / `sandbucket_app` roles plus the `_test` and `_shadow` databases (`compose/db-init.sh`; re-run with `pnpm db:init`). The `app` service is not started in dev; run `pnpm dev`.
 - Claude Code state (login, settings, history) lives on the `<project-folder>-claude-config` Docker volume via `CLAUDE_CONFIG_DIR`; per-project memory is symlinked to the gitignored `.devcontainer/claude-memory/` (`.devcontainer/post-create.sh`).
 - Project-shared Claude settings are `.claude/settings.json`; personal overrides go in the gitignored `.claude/settings.local.json`.

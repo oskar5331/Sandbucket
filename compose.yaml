@@ -9,11 +9,12 @@ services:
     image: &postgres-image postgres:17.11-bookworm
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: sandbucket
+      # No POSTGRES_DB: the app database is named once, in DATABASE_URL, and db-init
+      # creates it. The server starts with only its default `postgres` database.
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "sandbucket"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "postgres"]
       interval: 2s
       timeout: 3s
       retries: 30
