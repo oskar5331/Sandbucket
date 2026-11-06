@@ -7,7 +7,7 @@ FROM node:26-bookworm-slim
 
 # pnpm via corepack. Pin the version so every rebuild gets the same pnpm; once the
 # project has a package.json, its "packageManager" field takes over.
-ARG PNPM_VERSION=12.10.1
+ARG PNPM_VERSION=12.16.1
 ENV PNPM_HOME=/home/node/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
@@ -35,7 +35,7 @@ RUN apt-get update \
        python3 python3-venv python3-pip build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /home/node/.npm-global "$PNPM_HOME" "$COREPACK_HOME" /home/node/.claude \
-    && npm install -g corepack @anthropic-ai/claude-code \
+    && npm install -g corepack@0.36.0 @anthropic-ai/claude-code \
     && corepack enable \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
     && chown -R node:node /home/node/.npm-global /home/node/.local /home/node/.cache /home/node/.claude

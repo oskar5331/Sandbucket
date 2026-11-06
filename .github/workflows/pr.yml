@@ -56,7 +56,7 @@ jobs:
           done
           docker logs app
           exit 1
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e:install
       - run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://localhost:3000

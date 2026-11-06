@@ -44,4 +44,12 @@ grep -q '.devcontainer/zshrc' ~/.zshrc 2>/dev/null \
 [ -f pyproject.toml ] && uv sync
 [ -f .env ] || [ ! -f .env.example ] || cp .env.example .env
 
+# ── 6. Playwright browsers ─────────────────────────────────────────────────
+# Same script CI runs, so the browser list lives only in package.json. Browsers
+# land in ~/.cache/ms-playwright (not a volume), so a rebuild re-downloads them;
+# the version follows the lockfile. --with-deps apt-installs the system libs via sudo.
+if [ -f package.json ] && grep -q '"test:e2e:install"' package.json; then
+  pnpm test:e2e:install
+fi
+
 exit 0
