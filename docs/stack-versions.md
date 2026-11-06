@@ -38,15 +38,11 @@ At bootstrap, `package.json` uses these exact versions and `pnpm-lock.yaml` beco
 | PostgreSQL | **17** (major) | §18 | Plain Postgres, no vendor extensions. Used by `compose.yaml`, the devcontainer and CI. Supported until 2029-11-08. 18 is the current major; 17 was chosen on 2026-11-02. Fly isn't provisioned until M11 (`roadmap.md` Q2), so confirm then that Managed Postgres offers 17, and keep every environment on the same major. |
 | Postgres image | `postgres:17.11-bookworm` | §18, §28 | `compose.yaml` and the CI service container. A test asserts both use the same tag. |
 | Garage (`dxflrs/garage`) | v2.5.0 | §8, §20 | Self-host, local dev and CI object store. Replaced MinIO on 2026-11-03: MinIO's repository is archived and its Docker Hub image is gone. AGPL-3.0, runs as a separate service, so it doesn't affect the app's MIT license. |
-| `pg` | 8.23.1 | §8 | Connection pool. |
-| `uuidv7` | 1.2.1 | §6 | Primary keys, generated in Node. |
-| Kysely | 0.29.8 | §8, §18 | Requires Node ≥ 22. |
-| kysely-codegen | 0.20.0 | §18 | Type generation from the migrated schema. |
-| dbmate | 2.37.0 | §18 | Migrations. |
+| `pg` | 8.23.1 | §8 | Connection pool, used through `@prisma/adapter-pg` (peer `pg ^8.16.3`). |
+| Prisma (`prisma`, `@prisma/client`, `@prisma/adapter-pg`) | 7.10.1 | §5, §6, §18 | Schema, migrations and client, replacing dbmate, Kysely, kysely-codegen and `uuidv7` on 2026-11-04. **Not 8.x:** npm's `latest` tag on `prisma` points at `8.0.0-rc.30`, a release candidate, while `@prisma/client`'s `latest` is 7.10.1 and better-auth 1.7.15 accepts `prisma ^7`. Engines `node ^20.19 \|\| ^22.12 \|\| >=24`. Partial indexes (§32) need the `partialIndexes` preview feature (since 7.4). `prisma` is a production dependency because the image runs `prisma migrate deploy` (§29). |
 | better-auth | 1.7.15 | §21 | |
 | AWS SDK (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`) | 3.1161.0 | §20 | Same code against Tigris (hosted) and Garage (self-host). |
-| Resend (`resend`) | 6.37.0 | §22 | Hosted email. |
-| Nodemailer | 10.3.1 | §22 | SMTP for self-host. |
+| Nodemailer | 10.3.1 | §22 | SMTP, the one email transport for hosted and self-host (Resend removed 2026-11-04). |
 
 ## Testing and linting
 

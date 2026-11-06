@@ -48,15 +48,6 @@ describe("object storage config", () => {
   });
 });
 
-describe("dbmate", () => {
-  it("the Dockerfile installs the version pinned in docs/stack-versions.md", () => {
-    const pinned = read("docs/stack-versions.md").match(/^\| dbmate \| (\S+) \|/m)?.[1];
-    const installed = read("Dockerfile").match(/^ARG DBMATE_VERSION=(\S+)$/m)?.[1];
-    expect(pinned).toBeDefined();
-    expect(installed).toBe(pinned);
-  });
-});
-
 describe("CI workflow", () => {
   const workflow = () => read(".github/workflows/pr.yml");
 
@@ -117,8 +108,8 @@ describe("compose app service", () => {
 });
 
 describe("Postgres version", () => {
-  it("the devcontainer's psql/pg_dump client matches the compose server major (dbmate's schema dump needs pg_dump >= server)", () => {
-    const serverMajor = read("compose.yaml").match(/image:\s*postgres:(\d+)/)?.[1];
+  it("the devcontainer's psql/pg_dump client matches the compose server major", () => {
+    const serverMajor = read("compose.yaml").match(/image:\s*(?:&\S+\s+)?postgres:(\d+)/)?.[1];
     const clientMajors = [...read(".devcontainer/Dockerfile").matchAll(/postgresql-client-(\d+)/g)].map((m) => m[1]);
     expect(serverMajor).toBeDefined();
     expect(clientMajors.length).toBeGreaterThan(0);

@@ -36,3 +36,4 @@ __pycache__/
 # Hand-made backups of .env are full copies of the secrets in it, so they must never be
 # committable. Deliberately NOT `.env.*`, which would also ignore .env.example.
 .env.bak
+.env.backup

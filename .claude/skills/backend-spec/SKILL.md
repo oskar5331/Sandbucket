@@ -1,9 +1,9 @@
 ---
 name: backend-spec
-description: "Design-time gate for Sandbucket data-model work: fires before any dbmate migration in db/migrations/ is written whenever a feature adds or reshapes a Postgres table, column, constraint, index, RLS policy or join table, when pre-dev hands off a DB change, or when the human invokes /backend-spec or asks how a table should be modeled, scoped, deleted, or cascaded. Walks the per-table decisions the PRD has conventions for — reuse-before-rename, deploy-safety, data access, profile_id scope + RLS, UUIDv7 ids, deleted_at vs hard delete, cascades, indexes, field shape (text, bigint money), CHECK enums, json-vs-association, §7 audit columns, required isolation/role tests and type regen — suggesting the project default for each, flagging any choice that conflicts, and produces a short plan-only spec (it never edits the schema or runs migrations)."
+description: "Design-time gate for Sandbucket data-model work: fires before any Prisma schema change or migration in prisma/ is written whenever a feature adds or reshapes a Postgres table, column, constraint, index, RLS policy or join table, when pre-dev hands off a DB change, or when the human invokes /backend-spec or asks how a table should be modeled, scoped, deleted, or cascaded. Walks the per-table decisions the PRD has conventions for — reuse-before-rename, deploy-safety, data access, profile_id scope + RLS, UUIDv7 ids, deleted_at vs hard delete, cascades, indexes, field shape (text, bigint money), CHECK enums, json-vs-association, §7 audit columns, required isolation/role tests and type regen — suggesting the project default for each, flagging any choice that conflicts, and produces a short plan-only spec (it never edits the schema or runs migrations)."
 metadata:
   author: project
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # backend-spec
@@ -25,16 +25,16 @@ decided" must never be guessed at — ask the human instead.**
 
 | Setting | Value |
 |---|---|
-| Database + ORM / migration tool | PostgreSQL 17 (version: `compose.yaml`) + **dbmate**, no ORM; queries with **Kysely** on a `pg` Pool (§5, §18) |
-| Schema source of truth | The hand-written migrations in `db/migrations/NNNN_name.sql` (up/down). Row types in `lib/db/types.ts` are **generated** from the migrated DB by kysely-codegen — never hand-edited (§18) |
-| Migration workflow rule | Hand-written SQL, one migration per change, with a working `down`. A new tenant-scoped table's RLS policy goes in **the same migration** that creates it (§19). better-auth tables come from its CLI `generate`, committed as an ordinary migration (§21). After migrating, regenerate `lib/db/types.ts` — CI's drift check fails otherwise (§29) |
+| Database + ORM / migration tool | PostgreSQL 17 (version: `compose.yaml`) + **Prisma** (schema, Prisma Migrate, Prisma Client over `pg` via `@prisma/adapter-pg`) (§5, §18) |
+| Schema source of truth | `prisma/schema.prisma` for tables, columns, relations and indexes. What it cannot express — RLS policies, triggers, CHECK constraints, grants — lives only in the migration SQL under `prisma/migrations/`. Client and row types in `lib/db/generated/` are **generated** by `prisma generate` — never hand-edited, not committed (§18) |
+| Migration workflow rule | Edit `schema.prisma`, then `prisma migrate dev --create-only` to generate the migration; append the RLS policy, triggers, CHECKs and grants to **that same `migration.sql`** before applying it (§19). One migration per change; Prisma has no `down` (resettable until M11, roadmap Q3). better-auth models come from its CLI `generate` into `schema.prisma` (§21). CI's `prisma migrate diff` fails if schema and migrations disagree (§29) |
 | Deploy model (for §0a) | Read `docs/roadmap.md` Q3 — today: **resettable until M11** (no deploy before then); expand/contract (§29, `release_command` runs while the old version serves) from M11 on |
 | Live data exists? | **no** until M11 — re-check against roadmap Q3 / milestone status before relying on it |
 | Ownership unit (for §1) | `none` — one Next.js app, no modules (§14). Skip §1's module questions; keep its data-access check |
 | Cross-module read rule | `none` |
 | Data-access layer rule | All feature code goes through `forProfile(profileId)` (§19). The owner handle `lib/db/unsafe.ts` bypasses RLS and is allowed only in `lib/db/**` plus `UNSAFE_DB_ALLOWLIST` in `eslint.config.js` (§12). A table needing an owner-handle write path is a **flag**, not a default |
 | Scope / tenancy axis (for §2) | `profile_id uuid NOT NULL` on every tenant-scoped table + RLS `tenant_isolation` policy (§11, §19). User-keyed exceptions: `profile`, `profile_members` (§19). Global/platform tables (no `profile_id`) must be justified — flag them |
-| Id rules (for §3) | **Override of §3's sequential default:** every persistent table uses `id uuid PRIMARY KEY`, UUIDv7 minted in Node via `uuidv7` (§6). Never a DB sequence. Secrets (invitation tokens) are stored **hashed**, never as ids (§32). better-auth tables are vendor-owned |
+| Id rules (for §3) | **Override of §3's sequential default:** every persistent table uses `id uuid PRIMARY KEY`, UUIDv7 minted in Node by Prisma Client, `@id @default(uuid(7)) @db.Uuid` (§6). Never a DB sequence. Secrets (invitation tokens) are stored **hashed**, never as ids (§32). better-auth tables are vendor-owned |
 | Delete/archive patterns (for §4) | `deleted_at timestamptz NULL` = **retained** soft delete (no purge job — historical balance views read these rows), only where §8 says (`profile`, `party`); write paths/pickers filter `deleted_at IS NULL`. Hard delete + `ON DELETE CASCADE` for owned children (`transaction_group` → `record`) and for memberships (§8, §11). No `archived_at` pattern yet — proposing one is a decision to confirm |
 | Cascade vocabulary (for §5) | Postgres `ON DELETE CASCADE` / `RESTRICT` / `SET NULL` / `NO ACTION`, meanings as in walk step 5 below. **No FK to better-auth's `user` table** — user ids are soft references (`*_user_id uuid`, §7) |
 | String column convention (for §7) | Always `text`; length caps live in the Zod input schemas in `lib/schemas/*.ts` (§13), the single validation source. Fixed-width codes keep their honest type (`currency_code char(3)`, §10). Money is `amount_minor bigint NOT NULL`, never numeric/float (§9) |
@@ -80,7 +80,7 @@ Skip a step only when it plainly doesn't apply (or the configuration says `none`
 ### 0. Reuse before rename/drop — changed tables only (STOP-and-alert)
 
 Before speccing *any* change to an existing table, **diff the model against the current schema
-source** (the latest migration that touches the table in `db/migrations/`, plus `lib/db/types.ts`) and classify each column touched: **added** (net-new — fine, proceed) vs. **renamed /
+source** (the model in `prisma/schema.prisma`, plus the migrations under `prisma/migrations/` for the SQL-only parts: policy, triggers, CHECKs, grants) and classify each column touched: **added** (net-new — fine, proceed) vs. **renamed /
 dropped / repurposed** (an existing column changing name, going away, or holding a different
 payload). A rename/drop is a migration, and a migration is real, often-avoidable work: a migration
 file, re-proving seed/fixture data still applies, and a rename ripple through schema → data access →
@@ -153,7 +153,7 @@ An id is an **address, never a capability**: knowing it must not grant access. P
 confirm the read path that makes that form safe.
 
 > **Sandbucket:** the configured Id rule (UUIDv7 everywhere, §6) replaces the sequential default
-> below — skip the "Form" choice, record `uuidv7` on the `Id:` line, and flag any proposed sequence
+> below — skip the "Form" choice, record `uuid(7)` on the `Id:` line, and flag any proposed sequence
 > or serial as a conflict. The read-path rules still apply: `forProfile` + RLS give the
 > "resolve with scope in one query" and "out-of-scope = 404" behaviour for free **only** if the
 > query goes through the accessor.
@@ -296,8 +296,9 @@ cross-cutting rules). Name each one in the plan:
 
 ### 12. Generated types
 
-After the migration, `lib/db/types.ts` is regenerated by kysely-codegen and committed in the same
-change; the CI drift check (§29) fails on a stale file. Never hand-edit it.
+Types come from `prisma generate` (run on install and build) into `lib/db/generated/`, which is
+not committed. What CI checks instead is that the committed migrations still produce exactly
+`schema.prisma` (`prisma migrate diff`, §29). Never hand-edit the generated client.
 
 ---
 
@@ -320,7 +321,7 @@ Table: <Name>  (owner: <module>; cross-module reads: <none | <read seam>>)
   Audit:    <§7 columns + §4a trigger: yes | exception — why>; writers set *_by_user_id: <Server Actions>
   RLS:      <tenant_isolation (§19) | user-keyed — policy | global — why>; grants: <privileges for sandbucket_app>
   Tests:    <cross-tenant (harness) · zero-rows covers it · role tests: <actions> · invariants: <if any>>
-  Types:    lib/db/types.ts regenerated: <yes>
+  Types:    prisma generate + `prisma migrate diff` clean: <yes>
 
 Conflicts flagged: <any choice that breaks a configured convention, or "none">
 Hand-off: <downstream skill and what it owns | none>
